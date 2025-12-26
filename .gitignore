@@ -1,0 +1,21 @@
+# Virtual environment
+quang-venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Dataset
+VOC2012_train_val/
+
+# Model / output
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.h5
+runs/
+logs/
+
+# OS
+.DS_Store
