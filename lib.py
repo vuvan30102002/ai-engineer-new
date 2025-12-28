@@ -5,6 +5,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import cv2
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
 torch.manual_seed(123)
