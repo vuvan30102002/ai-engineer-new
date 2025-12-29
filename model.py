@@ -82,6 +82,107 @@ class SSD(nn.Module):
 
         if phase == "inference":
             self.detect = Detect()
+
+
+def decode(loc, defbox_list):
+    """
+    loc : [8732,4]   (dentaX, dentaY, dentaW, dentaH)
+    defbox_list: [8732,4]  (cx_d, cy_d, w_d, h_d)
+    """
+    """
+    return :
+    boxes [xmin, ymin, xmax, ymax]
+    """
+    boxes = torch.cat((defbox_list[:,:2] + 0.1*loc[:,:2] * defbox_list[:,:2],
+                      defbox_list[:, 2:] * torch.exp(loc[:,2:] * 0.2)), dim=1)
+    
+    # boxes: [x_center, y_center, w, h]
+    x_center = boxes[:, 0]
+    y_center = boxes[:, 1]
+    w = boxes[:, 2]
+    h = boxes[:, 3]
+
+    xmin = x_center - w/2
+    ymin = y_center - h/2
+    xmax = x_center + w/2
+    ymax = y_center + h/2
+
+    boxes[:, :2] = np.stack([xmin, ymin], axis=1)
+    boxes[:, 2:] = np.stack([xmax, ymax], axis=1)
+
+    return boxes
+
+
+def nms(boxes, scores, overlap=0.45, top_k=200):
+    """
+    boxes [8732,4]
+    score [8732]
+    """
+    count = 0
+    keep = scores.new(scores.size(0)).zero_().long()
+
+    x1 = boxes[:,0]
+    y1 = boxes[:,1]
+    x2 = boxes[:,2]
+    y2 = boxes[:,3]
+
+    # tinh dien tich cua boxes
+    area = torch.mul(x2-x1, y2-y1)
+
+    tmp_x1 = boxes.new()
+    tmp_x2 = boxes.new()
+    tmp_y1 = boxes.new()
+    tmp_y2 = boxes.new()
+    tmp_w = boxes.new()
+    tmp_h = boxes.new()
+
+    value, idx = scores.sort(0)
+    idx = idx[-top_k:]
+
+    while idx.numel() > 0:
+        i = idx[-1]
+        keep[count] = i
+        count += 1 # id cua box co do tu tin cao nhat (confident max)
+
+        if idx.size(0) == 1:
+            break
+        idx = idx[:-1]   # lay ra id 199 box con lai tru di 1 box cuoi dang so sanh
+
+        torch.index_select(x1, 0, idx, out=tmp_x1)
+        torch.index_select(x2, 0, idx, out=tmp_x2)
+        torch.index_select(y1, 0, idx, out=tmp_y1)
+        torch.index_select(y2, 0, idx, out=tmp_y2)
+
+        tmp_x1 = torch.clamp(tmp_x1, min=x1[i])   # = x1[i] nếu tmp_x1 < x1[i]
+        tmp_y1 = torch.clamp(tmp_y1, min=y1[i])   # = y1[i] nếu tmp_y1 < y1[i]
+        tmp_x2 = torch.clamp(tmp_x2, max=x2[i])   # = x2[i] nếu tmp_x2 > x2[i]
+        tmp_y2 = torch.clamp(tmp_y2, max=y2[i])   # = y2[i] nếu tmp_y2 > y2[i]
+
+        tmp_w.resize_as_(tmp_x2)
+        tmp_h.resize_as_(tmp_y2)
+
+        tmp_w = tmp_x2 - tmp_x1
+        tmp_h = tmp_y2 - tmp_y1
+
+        tmp_w = torch.clamp(tmp_w, min=0.0)
+        tmp_h = torch.clamp(tmp_h, min=0.0)
+
+        # tinh dien tich phan giua 2 box trung nhau
+        iter = tmp_w * tmp_h
+
+        others_area = torch.index_select(area, 0, idx)   # dien tich cua moi box
+        union = area[i] + others_area - iter
+        
+        iou = iter / union
+
+        idx = idx[iou.le(overlap)]
+
+    return keep, count
+
+
+
+
+
         
 
 if __name__ == "__main__":
