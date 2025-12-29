@@ -1,4 +1,6 @@
 from lib import *
+from l2_norm import L2Norm
+from default_box import Defbox
 
 def create_vgg():
     layers = list()
@@ -64,6 +66,37 @@ def create_loc_conf(num_classes=21, bbox_ratio_num=[4,6,6,6,4,4]):
 
     return nn.ModuleList(loc_layers), nn.ModuleList(conf_layers)
 
+class SSD(nn.Module):
+    def __init__(self, phase, cfg):
+        self.phase = phase
+        self.num_classes = cfg["num_classes"]
+        super().__init__()
+
+        self.vgg = create_vgg()
+        self.create_extract = create_extract()
+        self.create_loc, self.create_conf = create_loc_conf()
+        self.L2norm = L2Norm()
+
+        dbox = Defbox(cfg)
+        self.dbox_list = dbox.create_defbox()
+
+        if phase == "inference":
+            self.detect = Detect()
+        
+
 if __name__ == "__main__":
-    vgg = create_loc_conf()
-    print(vgg)
+    # vgg = create_loc_conf()
+    # print(vgg)
+    cfg = {
+        "num_classes" : 21,
+        "input_size" : 300,
+        "bbox_aspect_num": [4,6,6,6,4,4],
+        "feature_map" : [38,19,10,5,3,1],
+        "steps" : [8,16,32,64,100,300],
+        "min_size" : [30,60,111,162,213,264],
+        "max_size" : [60,111,162,213,264,315],
+        "aspect_ratios" : [[2],[2,3],[2,3],[2,3],[2],[2]]
+    }
+    ssd = SSD(phase="train", cfg=cfg)
+
+    print(ssd)
