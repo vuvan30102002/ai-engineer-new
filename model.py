@@ -180,6 +180,49 @@ def nms(boxes, scores, overlap=0.45, top_k=200):
     return keep, count
 
 
+# class Detect(Function):
+class Detect(nn.Module):
+    def __init__(self, conf_thresh=0.01, top_k=200, nms_thresh=0.45):
+        super().__init__()
+        self.softmax = nn.Softmax(dim=-1)
+        self.conf_thresh = conf_thresh
+        self.top_k = top_k
+        self.nms_thresh = nms_thresh
+
+    def forward(self, loc_data, conf_data, dbox_list):
+        num_batch = loc_data.size(0)
+        num_dbox = loc_data.size(1)
+        num_classes = conf_data.size(2)
+
+        conf_data = self.softmax(conf_data)  # chuyen ve dang soft max de tinh xac suat   (batch, 8732, 21) -> (batch, 21, 8732)
+        conf_preds = conf_data.transpose(2,1)
+
+        output = torch.zero(num_batch, num_classes, self.top_k, 5)
+
+        # xu ly tung anh
+        for i in range(num_batch):
+            decode_boxes = decode(loc_data[i], dbox_list)    #tao ra 8732 default box list
+            conf_scores = conf_preds[i].clone()   # (21,8732)
+
+            for cl in range(1,num_classes):
+                c_mask = conf_scores[cl].gt(self.conf_thresh)  # lay ra nhuwng confident nao lon hon 0.01
+                scores = conf_scores[cl][c_mask]    # khong con 8732 score cua bbox nua ma no da giam di roi
+
+                if scores.nelement() == 0:
+                    continue
+
+                # dua ve chieu giong cua decode boxes de tinh toan
+                l_mask = c_mask.unsqueeze(1).expand_as(decode_boxes)  # (8732,4)
+
+                boxes = decode_boxes[l_mask].view(-1,4)    # den day se coon N < 8732 boxes
+                ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+
+                output[i,cl,:count] = torch.cat((scores[ids[:count]].unsqueeze(1), boxes[ids[:count]]), 1)
+        return output
+
+    
+
+
 
 
 
