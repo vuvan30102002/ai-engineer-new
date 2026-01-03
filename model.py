@@ -37,7 +37,7 @@ def create_extract():
     layers += [nn.Conv2d(cfgs[4], cfgs[5], kernel_size=3, stride=2, padding=1)]
 
     layers += [nn.Conv2d(cfgs[5], cfgs[6], kernel_size=1)]
-    layers += [nn.Conv2d(cfgs[6], cfgs[7], kernel_size=3, stride=2, padding=1)]
+    layers += [nn.Conv2d(cfgs[6], cfgs[7], kernel_size=3, stride=1, padding=0)]
 
     return nn.ModuleList(layers)
 
@@ -91,7 +91,6 @@ class SSD(nn.Module):
         for k in range(23):
             x = self.vgg[k](x)
         
-
         #source 1
         source1 = self.L2norm(x)
         sources.append(source1)
@@ -103,7 +102,7 @@ class SSD(nn.Module):
 
         #source 3->6
         for k, v in enumerate(self.create_extract):
-            x = nn.ReLU(v(x), inplace=True)
+            x = nn.ReLU(inplace=True)(v(x))
             if k % 2 == 1:
                 sources.append(x)
 
@@ -273,18 +272,18 @@ class Detect(nn.Module):
         
 
 if __name__ == "__main__":
-    # vgg = create_loc_conf()
-    # print(vgg)
-    cfg = {
-        "num_classes" : 21,
-        "input_size" : 300,
-        "bbox_aspect_num": [4,6,6,6,4,4],
-        "feature_map" : [38,19,10,5,3,1],
-        "steps" : [8,16,32,64,100,300],
-        "min_size" : [30,60,111,162,213,264],
-        "max_size" : [60,111,162,213,264,315],
-        "aspect_ratios" : [[2],[2,3],[2,3],[2,3],[2],[2]]
-    }
-    ssd = SSD(phase="train", cfg=cfg)
+    vgg = create_extract()
+    print(vgg)
+    # cfg = {
+    #     "num_classes" : 21,
+    #     "input_size" : 300,
+    #     "bbox_aspect_num": [4,6,6,6,4,4],
+    #     "feature_map" : [38,19,10,5,3,1],
+    #     "steps" : [8,16,32,64,100,300],
+    #     "min_size" : [30,60,111,162,213,264],
+    #     "max_size" : [60,111,162,213,264,315],
+    #     "aspect_ratios" : [[2],[2,3],[2,3],[2,3],[2],[2]]
+    # }
+    # ssd = SSD(phase="train", cfg=cfg)
 
-    print(ssd)
+    print(vgg)
