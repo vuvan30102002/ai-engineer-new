@@ -4,3 +4,5 @@ pyplotlib
 opencv-python
 torch
 torchvision
+fastapi
+uvicorn

@@ -24,7 +24,7 @@ anno_xml = Anno_xml(classes)
 train_dataset = MyDataset(train_img_list, train_anno_list, phase_train, transform, anno_xml)
 val_dataset = MyDataset(val_img_list, val_anno_list, phase_val, transform, anno_xml)
 
-batch_size = 4
+batch_size = 32
 train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, collate_fn=my_collate_fn)
 val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, collate_fn=my_collate_fn)
 
