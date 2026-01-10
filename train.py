@@ -25,7 +25,7 @@ train_dataset = MyDataset(train_img_list, train_anno_list, phase_train, transfor
 val_dataset = MyDataset(val_img_list, val_anno_list, phase_val, transform, anno_xml)
 
 batch_size = 32
-train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, collate_fn=my_collate_fn)
+train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, collate_fn=my_collate_fn, num_workers=8)
 val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, collate_fn=my_collate_fn)
 
 dataloader_dict = {
@@ -82,7 +82,7 @@ def train_model(network, dataloader_dict, criterion, optimizer, num_epochs):
                 print("(Training)")
             else:
                 if (epoch+1) % 10 == 0:
-                    network.val()
+                    network.eval()
                     print("---"*10)
                     print("(Validation)")
                 else:
@@ -134,7 +134,7 @@ def train_model(network, dataloader_dict, criterion, optimizer, num_epochs):
         epoch_train_loss = 0.0
         epoch_val_loss = 0.0
 
-        if ((epoch + 1) % 10 == 0):
+        if ((epoch + 1) % 5 == 0):
             torch.save(network.state_dict(), "./VOC2012_train_val/weights/ssd300" + str(epoch + 1) + ".pth")
 
 num_epoch = 30
